@@ -11,6 +11,8 @@ function ProjectDialog({project,onClose,onNext}:{project:Project|null;onClose:()
  const dialog=useRef<HTMLDialogElement>(null);
  const scroller=useRef<HTMLDivElement>(null);
  const [expanded,setExpanded]=useState<number|null>(null);
+ const lightboxTrigger=useRef<HTMLButtonElement|null>(null);
+ const closeLightbox=()=>{setExpanded(null);requestAnimationFrame(()=>lightboxTrigger.current?.focus({preventScroll:true}));};
  useEffect(()=>{
   const el=dialog.current;
   if(!project||!el)return;
@@ -20,16 +22,16 @@ function ProjectDialog({project,onClose,onNext}:{project:Project|null;onClose:()
   document.body.style.overflow='hidden';
   return()=>{el.close();document.body.style.overflow=previousOverflow;focused?.focus({preventScroll:true});};
  },[!!project]);
- useEffect(()=>{scroller.current?.scrollTo(0,0);setExpanded(null);},[project?.slug]);
- return <dialog ref={dialog} className="project-dialog" aria-labelledby="project-title" onCancel={e=>{e.preventDefault();expanded!==null?setExpanded(null):onClose();}}>
+ useEffect(()=>{scroller.current?.scrollTo(0,0);setExpanded(null);dialog.current?.querySelector<HTMLButtonElement>('.dialog-nav button')?.focus({preventScroll:true});},[project?.slug]);
+ return <dialog ref={dialog} className="project-dialog" aria-labelledby="project-title" onCancel={e=>{e.preventDefault();expanded!==null?closeLightbox():onClose();}}>
   {project && <>
    <div className="dialog-nav"><span className="eyebrow">D.A. / PROGETTO {project.number}</span><button className="close-button" onClick={onClose} aria-label="Chiudi progetto"><span>Chiudi</span><span aria-hidden="true">×</span></button></div>
    <div className="dialog-scroll" ref={scroller}>
     <div className="project-intro"><p className="eyebrow">{project.category} / {project.subtitle}</p><h2 id="project-title">{project.title}</h2><div className="project-description"><p className="lead">{project.description}</p><div>{project.details.map(p=><p key={p}>{p}</p>)}<div className="tags">{project.tags.map(t=><span key={t}>{t}</span>)}</div></div></div></div>
-    <div className="project-pages">{project.pages.map((page,i)=><figure key={page}><button onClick={()=>setExpanded(page)} aria-label={`Ingrandisci tavola ${i+1} di ${project.title}`}><img src={image(`page-${String(page).padStart(2,'0')}`)} alt={`${project.title} — tavola originale ${i+1} del portfolio`} loading={i?'lazy':'eager'} width="2400" height="1697"/><span className="image-expand" aria-hidden="true">↗</span></button><figcaption><span>{project.title}</span><span>TAVOLA {String(i+1).padStart(2,'0')} / {String(project.pages.length).padStart(2,'0')}</span></figcaption></figure>)}</div>
+    <div className="project-pages">{project.pages.map((page,i)=><figure key={page}><button onClick={e=>{lightboxTrigger.current=e.currentTarget;setExpanded(page);}} aria-label={`Ingrandisci tavola ${i+1} di ${project.title}`}><img src={image(`page-${String(page).padStart(2,'0')}`)} alt={`${project.title} — tavola originale ${i+1} del portfolio`} loading={i?'lazy':'eager'} width="2400" height="1697"/><span className="image-expand" aria-hidden="true">↗</span></button><figcaption><span>{project.title}</span><span>TAVOLA {String(i+1).padStart(2,'0')} / {String(project.pages.length).padStart(2,'0')}</span></figcaption></figure>)}</div>
     <button className="next-project" onClick={onNext}><span className="eyebrow">PROSSIMO PROGETTO</span><span>{projects[(projects.indexOf(project)+1)%projects.length].title}<Arrow/></span></button>
    </div>
-   {expanded!==null&&<div className="lightbox" role="region" aria-label="Tavola ingrandita" onKeyDown={e=>{if(e.key==='Tab'){e.preventDefault();e.currentTarget.querySelector('button')?.focus();}}}><button autoFocus className="close-button" onClick={()=>setExpanded(null)} aria-label="Chiudi tavola ingrandita">Torna al progetto <span aria-hidden="true">×</span></button><img src={image(`page-${String(expanded).padStart(2,'0')}`)} alt={`Tavola ingrandita di ${project.title}`}/></div>}
+   {expanded!==null&&<div className="lightbox" role="region" aria-label="Tavola ingrandita" onKeyDown={e=>{if(e.key==='Tab'){e.preventDefault();e.currentTarget.querySelector('button')?.focus();}}}><button autoFocus className="close-button" onClick={closeLightbox} aria-label="Chiudi tavola ingrandita">Torna al progetto <span aria-hidden="true">×</span></button><img src={image(`page-${String(expanded).padStart(2,'0')}`)} alt={`Tavola ingrandita di ${project.title}`}/></div>}
   </>}
  </dialog>;
 }
@@ -53,7 +55,7 @@ export default function App() {
  },[]);
  useEffect(()=>{
   if(!menuOpen)return;
-  const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')setMenuOpen(false);};
+  const escape=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenuOpen(false);root.current?.querySelector<HTMLButtonElement>('.menu-toggle')?.focus();}};
   window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape);
  },[menuOpen]);
  useLayoutEffect(()=>{
